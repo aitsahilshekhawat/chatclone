@@ -74,3 +74,32 @@ export const getMessages = async (req, res) => {
     });
   }
 };
+export const markMessagesSeen = async (req, res) => {
+  try {
+    const { id: senderId } = req.params;
+
+    const myId = req.user.userId;
+
+    await Message.updateMany(
+      {
+        senderId,
+        receiverId: myId,
+        seen: false,
+      },
+
+      {
+        seen: true,
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};

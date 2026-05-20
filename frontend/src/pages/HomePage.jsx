@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useState, useRef } from "react";
 import { axiosInstance } from "../lib/axios";
 
 import { socket } from "../lib/socket";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
   const [users, setUsers] = useState([]);
@@ -13,9 +13,15 @@ export default function HomePage() {
 
   const [text, setText] = useState("");
 
+  const [search, setSearch] = useState("");
+
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const [typingUser, setTypingUser] = useState(null);
+
+  const messagesEndRef = useRef(null);
+
+  const navigate = useNavigate();
 
   // FETCH USERS
   const fetchUsers = async () => {
@@ -36,6 +42,25 @@ export default function HomePage() {
 
   // FETCH MESSAGES
   const fetchMessages = async (userId) => {
+    const markSeen = async (userId) => {
+      try {
+        const token = localStorage.getItem("token");
+
+        await axiosInstance.put(
+          `/messages/seen/${userId}`,
+
+          {},
+
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    };
     try {
       const token = localStorage.getItem("token");
 
@@ -120,6 +145,12 @@ export default function HomePage() {
       socket.off("onlineUsers");
     };
   }, []);
+  //Auto scroll effect
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   // TYPING
   useEffect(() => {
@@ -135,6 +166,15 @@ export default function HomePage() {
       socket.off("typing");
     };
   }, []);
+  const filteredUsers = users.filter((user) =>
+    user.fullName.toLowerCase().includes(search.toLowerCase()),
+  );
+  const logout = () => {
+    localStorage.removeItem("token");
+
+    navigate("/");
+  };
+
 
   return (
     <div className="h-screen w-full bg-[#0f172a] text-white flex overflow-hidden">
@@ -142,9 +182,20 @@ export default function HomePage() {
       <div className="w-[350px] bg-[#111827] border-r border-gray-800 flex flex-col">
         {/* HEADER */}
         <div className="p-4 border-b border-gray-800">
-          <h1 className="text-2xl font-bold">Telegram Clone</h1>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold">Telegram Clone</h1>
 
-          <p className="text-sm text-gray-400">Realtime Chat App</p>
+              <p className="text-sm text-gray-400">Realtime Chat App</p>
+            </div>
+
+            <button
+              onClick={logout}
+              className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* SEARCH */}
@@ -152,19 +203,22 @@ export default function HomePage() {
           <input
             type="text"
             placeholder="Search chats..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#1f2937] px-4 py-3 rounded-xl outline-none"
           />
         </div>
 
         {/* USERS */}
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-2">
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <div
               key={user._id}
               onClick={() => {
                 setSelectedUser(user);
 
                 fetchMessages(user._id);
+                markSeen(user._id);
               }}
               className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#1f2937] cursor-pointer transition"
             >
@@ -246,6 +300,17 @@ export default function HomePage() {
                     }`}
                   >
                     <p>{msg.text}</p>
+
+                    <div className="flex justify-end items-center gap-1 mt-1">
+                      <p className="text-xs opacity-70">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+
+                      {msg.seen && <span className="text-xs">✓✓</span>}
+                    </div>
                   </div>
                 </div>
               ))
@@ -282,6 +347,11 @@ export default function HomePage() {
 
                       receiverId: selectedUser._id,
                     });
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    sendMessage();
                   }
                 }}
                 className="flex-1 bg-[#1f2937] px-5 py-4 rounded-2xl outline-none"
