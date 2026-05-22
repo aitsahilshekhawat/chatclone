@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../lib/axios";
 export default function SignupPage() {
     const [fullName, setFullName] = useState("");
@@ -7,6 +7,7 @@ export default function SignupPage() {
     const [email, setEmail] = useState("");
 
     const [password, setPassword] = useState("");
+    const navigate = useNavigate();
     const handleSignup = async () => {
       try {
         const res = await axiosInstance.post("/auth/signup", {
@@ -62,6 +63,15 @@ export default function SignupPage() {
           >
             Signup
           </button>
+          <p className="text-center text-gray-400">
+            Already have an account?{" "}
+            <span
+              onClick={() => navigate("/")}
+              className="text-blue-500 cursor-pointer hover:underline"
+            >
+              Login
+            </span>
+          </p>
         </div>
       </div>
     </div>

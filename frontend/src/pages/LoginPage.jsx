@@ -62,6 +62,15 @@ export default function LoginPage() {
         >
           Login
         </button>
+        <p className="text-center text-gray-400">
+          Don't have an account?{" "}
+          <span
+            onClick={() => navigate("/signup")}
+            className="text-blue-500 cursor-pointer hover:underline"
+          >
+            Sign Up
+          </span>
+        </p>
       </form>
     </div>
   );
